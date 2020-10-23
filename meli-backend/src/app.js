@@ -4,8 +4,10 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const apiRouter = require('./routes/api/apiRoutes')
 const authorMiddleware = require('./middlewares/api/author')
+const cors = require('cors')
 const app = express();
 
+app.use(cors())
 app.use(authorMiddleware)
 app.use(logger('dev'));
 app.use(express.json());
