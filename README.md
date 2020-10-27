@@ -5,6 +5,7 @@
 - NodeJS
 - Express generator
 - Axios
+- CORS
 
 ## Cómo iniciar la aplicación
 

@@ -1,5 +1,9 @@
 const axios = require("axios");
 
+/**
+ * Crea un ítem de búsqueda con el formato indicado
+ * @param {Object} product - ítem de búsqueda
+ */
 const generateSearchItem = (product) => {
     return {
         "id": product.id,
@@ -14,6 +18,12 @@ const generateSearchItem = (product) => {
         "free_shipping": product.shipping.free_shipping
     }
 }
+
+/**
+ * Crea un ítem de detalle con el formato indicado
+ * @param {Object} data - información del ítem de detalle
+ * @param {Object} description - descripción del ítem de detalle
+ */
 const generateDetailItem = (data, description) => {
     return {
         "id": data.id,
@@ -31,51 +41,52 @@ const generateDetailItem = (data, description) => {
     }
 }
 
+/**
+ * Crea un array de las categorías del producto buscado
+ * @param {Object} categories - árbol de categorías correspondiente al producto
+ */
 const generateCategories = (categories) => {
-   return categories[0].values[0].path_from_root.map(categoria => categoria.name)
+    let filters = null;
+
+    if (categories.length > 0) {
+        filters = categories[0].values[0].path_from_root.map(categoria => categoria.name);
+    }
+
+    return filters;
 }
 
+/**
+ * Controller de la API
+ */
 module.exports = {
     search: async (req, res) => {
-
         const searchParam = req.query.search;
 
         try {
-            const SEARCH_URL = `https://api.mercadolibre.com/sites/MLA/search?q=${searchParam}`;
-            
+            const SEARCH_URL = `https://api.mercadolibre.com/sites/MLA/search?q=${searchParam}&limit=4`;
             const fetchData = await axios.get(SEARCH_URL);
             
-            const searchItems ={
+            const searchItems = {
                 categories: generateCategories(fetchData.data.filters),
-                items : fetchData.data.results.map(product => generateSearchItem(product))
-            }
+                items: fetchData.data.results.map(product => generateSearchItem(product))
+            };
             
             res.json(searchItems);
-
         } catch (error) {
-
-            res.json(error.message);
-
+            res.status(404).json(error.message);
         }
     },
     items: async (req, res) => {
-
-        const paramId = req.params.id;
+        const idParam = req.params.id;
 
         try {
-            
-            const item = await axios.get(`https://api.mercadolibre.com/items/${paramId}`);
-
-            const descriptionFetch = await axios.get(`https://api.mercadolibre.com/items/${paramId}/description`);
-           
-            const {plain_text} = descriptionFetch.data;
-            
-            res.json(generateDetailItem(item.data,plain_text));
-           
+            const fetchItem = await axios.get(`https://api.mercadolibre.com/items/${idParam}`);
+            const fetchDescription = await axios.get(`https://api.mercadolibre.com/items/${idParam}/description`);
+            const { plain_text } = fetchDescription.data;
+        
+            res.json(generateDetailItem(fetchItem.data, plain_text));
         } catch (error) {
-
-            res.status(404).json(error.message)
-
+            res.status(404).json(error.message);
         }
     }
 }
