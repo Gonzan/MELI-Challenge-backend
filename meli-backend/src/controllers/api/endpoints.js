@@ -1,4 +1,5 @@
 const axios = require("axios");
+const {priceFormater} = require('../../helpers/helpers');
 
 /**
  * Crea un ítem de búsqueda con el formato indicado
@@ -10,7 +11,7 @@ const generateSearchItem = (product) => {
         "title": product.title,
         "price": {
             "currency": product.currency_id,
-            "amount": product.price,
+            "amount": priceFormater(product.price),
             "decimals": 2
         },
         "picture": product.thumbnail,
@@ -30,7 +31,7 @@ const generateDetailItem = (data, description) => {
         "title": data.title,
         "price": {
             "currency": data.currency_id,
-            "amount": data.price,
+            "amount": priceFormater(data.price),
             "decimals": 2
         },
         "picture": data.thumbnail,
@@ -59,34 +60,46 @@ const generateCategories = (categories) => {
  * Controller de la API
  */
 module.exports = {
-    search: async (req, res) => {
+   /**
+    * Genera un llamado a la api de serch de Mercado libre con el parámetro indicado
+    * @return {Array} Retorna un array de items del tipo producto con el formato indicado.
+    */
+    search: (req, res) => {
         const searchParam = req.query.search;
 
-        try {
             const SEARCH_URL = `https://api.mercadolibre.com/sites/MLA/search?q=${searchParam}&limit=4`;
-            const fetchData = await axios.get(SEARCH_URL);
-            
-            const searchItems = {
-                categories: generateCategories(fetchData.data.filters),
-                items: fetchData.data.results.map(product => generateSearchItem(product))
-            };
-            
-            res.json(searchItems);
-        } catch (error) {
-            res.status(404).json(error.message);
-        }
+            axios.get(SEARCH_URL).then(
+                fetchData => {
+                    const searchItems = {
+                        categories: generateCategories(fetchData.data.filters),
+                        items: fetchData.data.results.length !== 0 ? fetchData.data.results.map(product => generateSearchItem(product)) : null
+                    };
+                    res.json(searchItems);
+                }
+            ).catch ((error) => {
+                res.status(404).json(error.message);
+            })
     },
-    items: async (req, res) => {
+   /**
+    * Genera dos llamados a la api de Mercado libre con el parámetro indicado
+    * @return {Object} Retorna un objeto del tipo producto con el formato indicado.
+    */
+    items: (req, res) => {
         const idParam = req.params.id;
 
-        try {
-            const fetchItem = await axios.get(`https://api.mercadolibre.com/items/${idParam}`);
-            const fetchDescription = await axios.get(`https://api.mercadolibre.com/items/${idParam}/description`);
-            const { plain_text } = fetchDescription.data;
-        
-            res.json(generateDetailItem(fetchItem.data, plain_text));
-        } catch (error) {
+      
+            const fetchItem = axios.get(`https://api.mercadolibre.com/items/${idParam}`)
+            const fetchDescription = axios.get(`https://api.mercadolibre.com/items/${idParam}/description`);
+            Promise.all([fetchItem,fetchDescription]).then(
+                data => {
+                    let description = data[1];
+                    let item = data[0];
+                    const  { plain_text }  = description.data;
+
+                    res.json(generateDetailItem(item.data, plain_text));
+                } 
+            ).catch( (error)=> {
             res.status(404).json(error.message);
+            })
         }
-    }
 }
