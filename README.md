@@ -9,6 +9,7 @@
 
 ## Cómo iniciar la aplicación
 
+### `cd meli-backend`
 ### `npm start`
 
 **Monta la aplicación en el puerto [http://localhost:5000](http://localhost:5000)**
